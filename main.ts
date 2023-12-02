@@ -5,7 +5,18 @@ const DOWN = 3 as const;
 const directions = [LEFT, UP, RIGHT, DOWN] as const;
 type Direction = (typeof directions)[number];
 
-type Tile = { symbol: string; connections: [0 | 1, 0 | 1, 0 | 1, 0 | 1] };
+const NONE = 0;
+const SINGLE = 1;
+const DOUBLE = 2;
+const connectionTypes = [NONE, SINGLE, DOUBLE] as const;
+type Connection = (typeof connectionTypes)[number];
+
+type Tile = {
+  symbol: string;
+  connections: [Connection, Connection, Connection, Connection];
+};
+
+const em: Tile = { symbol: " ", connections: [0, 0, 0, 0] };
 
 const ve: Tile = { symbol: "│", connections: [0, 1, 0, 1] };
 const ho: Tile = { symbol: "─", connections: [1, 0, 1, 0] };
@@ -18,8 +29,81 @@ const hu: Tile = { symbol: "┴", connections: [1, 1, 1, 0] };
 const vl: Tile = { symbol: "┤", connections: [1, 1, 0, 1] };
 const vr: Tile = { symbol: "├", connections: [0, 1, 1, 1] };
 const vh: Tile = { symbol: "┼", connections: [1, 1, 1, 1] };
-const em: Tile = { symbol: " ", connections: [0, 0, 0, 0] };
-const tiles = [ve, ho, ld, rd, lu, ru, hd, hu, vl, vr, vh, em] as const;
+
+const v2e2: Tile = { symbol: "║", connections: [0, 2, 0, 2] };
+const h2o2: Tile = { symbol: "═", connections: [2, 0, 2, 0] };
+const l2d2: Tile = { symbol: "╗", connections: [2, 0, 0, 2] };
+const r2d2: Tile = { symbol: "╔", connections: [0, 0, 2, 2] };
+const l2u2: Tile = { symbol: "╝", connections: [2, 2, 0, 0] };
+const r2u2: Tile = { symbol: "╚", connections: [0, 2, 2, 0] };
+const h2d2: Tile = { symbol: "╦", connections: [2, 0, 2, 2] };
+const h2u2: Tile = { symbol: "╩", connections: [2, 2, 2, 0] };
+const v2l2: Tile = { symbol: "╣", connections: [2, 2, 0, 2] };
+const v2r2: Tile = { symbol: "╠", connections: [0, 2, 2, 2] };
+const v2h2: Tile = { symbol: "╬", connections: [2, 2, 2, 2] };
+
+const vl2: Tile = { symbol: "╡", connections: [2, 1, 0, 1] };
+const v2l: Tile = { symbol: "╢", connections: [1, 2, 0, 2] };
+const ld2: Tile = { symbol: "╖", connections: [1, 0, 0, 2] };
+const l2d: Tile = { symbol: "╕", connections: [2, 0, 0, 1] };
+const lu2: Tile = { symbol: "╜", connections: [1, 2, 0, 0] };
+const l2u: Tile = { symbol: "╛", connections: [2, 1, 0, 0] };
+const vr2: Tile = { symbol: "╞", connections: [0, 1, 2, 1] };
+const v2r: Tile = { symbol: "╟", connections: [0, 2, 1, 2] };
+const h2u: Tile = { symbol: "╧", connections: [2, 1, 2, 0] };
+const hu2: Tile = { symbol: "╨", connections: [1, 2, 1, 0] };
+const h2d: Tile = { symbol: "╤", connections: [2, 0, 2, 1] };
+const hd2: Tile = { symbol: "╥", connections: [1, 0, 1, 2] };
+const u2r: Tile = { symbol: "╙", connections: [0, 2, 1, 0] };
+const ur2: Tile = { symbol: "╘", connections: [0, 1, 2, 0] };
+const dr2: Tile = { symbol: "╒", connections: [0, 0, 2, 1] };
+const d2r: Tile = { symbol: "╓", connections: [0, 0, 1, 2] };
+const v2h: Tile = { symbol: "╫", connections: [1, 2, 1, 2] };
+const vh2: Tile = { symbol: "╪", connections: [2, 1, 2, 1] };
+
+const tiles = [
+  em,
+  ve,
+  ho,
+  ld,
+  rd,
+  lu,
+  ru,
+  hd,
+  hu,
+  vl,
+  vr,
+  vh,
+  v2e2,
+  h2o2,
+  l2d2,
+  r2d2,
+  l2u2,
+  r2u2,
+  h2d2,
+  h2u2,
+  v2l2,
+  v2r2,
+  v2h2,
+  vl2,
+  v2l,
+  ld2,
+  l2d,
+  lu2,
+  l2u,
+  vr2,
+  v2r,
+  h2u,
+  hu2,
+  h2d,
+  hd2,
+  u2r,
+  ur2,
+  dr2,
+  d2r,
+  v2h,
+  vh2,
+] as const;
 
 type Cell = { domain: Tile[] };
 
@@ -44,20 +128,25 @@ const showCell = (cell: Cell) =>
     ? String(cell.domain.length)
     : "?";
 
-const connectionTo = (dir: Direction, x: number, y: number) => {
+type Constraint = Connection | "?";
+
+const connectionTo = (dir: Direction, x: number, y: number): Constraint => {
   if (x < 0 || y < 0 || x >= width || y >= height) {
     return "?";
   }
-  if (grid[y][x].domain.every((tile) => tile.connections[dir] === 1)) {
-    return 1;
+  if (grid[y][x].domain.every((tile) => tile.connections[dir] === DOUBLE)) {
+    return DOUBLE;
   }
-  if (grid[y][x].domain.every((tile) => tile.connections[dir] === 0)) {
-    return 0;
+  if (grid[y][x].domain.every((tile) => tile.connections[dir] === SINGLE)) {
+    return SINGLE;
+  }
+  if (grid[y][x].domain.every((tile) => tile.connections[dir] === NONE)) {
+    return NONE;
   }
   return "?";
 };
 
-const constrainedBy = (connection: 0 | 1, constraint: 0 | 1 | "?") =>
+const constrainedBy = (connection: Connection, constraint: Constraint) =>
   constraint !== "?" && connection !== constraint;
 
 const update = (x: number, y: number) => {
